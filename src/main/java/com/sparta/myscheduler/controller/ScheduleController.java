@@ -27,7 +27,7 @@ public class ScheduleController {
     // level 1 : 일정 포스팅
     @PostMapping("/schedule")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto requestDto) {
-
+        // test
         // RequestDto -> Entity
         Schedule schedule = new Schedule(requestDto);
         System.out.println(schedule);

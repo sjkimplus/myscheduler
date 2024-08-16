@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -27,7 +28,7 @@ public class ScheduleController {
     // level 1 : 일정 포스팅
     @PostMapping("/schedule")
     public ScheduleResponseDto createSchedule(@RequestBody ScheduleRequestDto requestDto) {
-        // test
+
         // RequestDto -> Entity
         Schedule schedule = new Schedule(requestDto);
         System.out.println(schedule);
@@ -80,16 +81,31 @@ public class ScheduleController {
         });
     }
 
-    // level 3 : 모든일정 조회
+    // level 3 : 조건별 일정 조회
     @GetMapping("/schedule")
-    public List<ScheduleResponseDto> getSchedules() {
-        // DB 조회
-        String sql = "SELECT * FROM schedule";
+    public List<ScheduleResponseDto> getSchedules(
+            @RequestParam(value = "timeEdited", required = false) String timeEdited,
+            @RequestParam(value = "inCharge", required = false) String inCharge) {
 
-        return jdbcTemplate.query(sql, new RowMapper<ScheduleResponseDto>() {
+        // 기본 SQL 쿼리
+        StringBuilder sql = new StringBuilder("SELECT * FROM schedule WHERE 1=1");
+
+        // 조건에 따라 SQL 쿼리 추가
+        if (timeEdited != null && !timeEdited.isEmpty()) {
+            sql.append(" AND DATE(time_edited) = '").append(timeEdited).append("'");
+        }
+        if (inCharge != null && !inCharge.isEmpty()) {
+            sql.append(" AND in_charge = '").append(inCharge).append("'");
+        }
+
+        // 수정일 기준 내림차순 정렬 - 가장 최근부터 과거
+        sql.append(" ORDER BY time_edited DESC");
+
+        // 쿼리 실행 및 결과 매핑
+        return jdbcTemplate.query(sql.toString(), new RowMapper<ScheduleResponseDto>() {
             @Override
             public ScheduleResponseDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-                // SQL 의 결과로 받아온 Schedule 데이터들을 ScheduleResponseDto 타입으로 변환해줄 메서드
+                // SQL 결과를 ScheduleResponseDto로 변환
                 Long schedule_id = rs.getLong("schedule_id");
                 String title = rs.getString("title");
                 String inCharge = rs.getString("in_charge");
@@ -101,6 +117,7 @@ public class ScheduleController {
             }
         });
     }
+
 
     // level 4: 특정 일정 수정
     @PutMapping("/schedule/{id}")
@@ -133,6 +150,5 @@ public class ScheduleController {
         } else {
             throw new IllegalArgumentException("선택한 일정은 존재하지 않거나 비밀번호가 일치하지 않습니다.");
         }
-
     }
 }
